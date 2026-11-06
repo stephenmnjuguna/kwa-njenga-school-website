@@ -1,0 +1,30 @@
+name: School Website — Build & Typecheck
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Website typecheck
+        run: pnpm --filter @workspace/school-website run typecheck
+      - name: Website production build
+        run: pnpm --filter @workspace/school-website run build
+        env:
+          PORT: '5173'
+          BASE_PATH: '/'
+      - name: Static audit unit tests
+        run: python3 -m unittest discover -s scripts -p 'test_*.py' -v
+      - name: Publication blockers (informational; release gate remains manual)
+        run: python3 scripts/preflight_audit.py
